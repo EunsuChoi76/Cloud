@@ -1,0 +1,146 @@
+
+제목: 클라우드와 CI/CD
+
+목차:
+1. AWS VPC 구성
+2. Autoscaling group 과 Launch Configuration(Template)
+3. AutoScaling group과 정책, lifecycle hook
+4. 클라우드 구성시 고려사항(AWS)
+5. Jenkins Build환경 및 Git Webhook
+6. Ansible의 개념과 사용
+7. Packer와  Ansible 통한 AMI 생성
+8. Terraform 으로 Launch Template 생성
+
+========================================
+## AWS VPC 구성
+# 만들면서 배우는 아마존 vpc
+https://www.44bits.io/ko/post/understanding_aws_vpc
+
+ VPC: Virtual Private Cloud 논리적으로 독립/격리된 네트워크 +  provisioning 하나의 서비스로 볼수 있음
+ CIDR: Careless Inter Domain Routing IPv4에서 / 로 구분
+         vpc 생성후 cidr을 변경하는것은 불가 but 만들어진 vpc에 새로운 cidr을 추가할 수는 있음 
+         -> 운영환경에서 사전에 필요한 네트워크 자원의 산정이 매우 중요
+ Subnet: 그룹핑된 네트워크 대역. vpc는 논리적이라면 subnet은 물리적 available zone으로 나타냄.
+            vpc내 여러개의 subnet 구성가능
+ Route Table: vpc나 subnet에 연결된 네트워크 라우팅 규칙. 인터넷 또는 다른 사설망 접속시 규칙 추가필요
+ Internet Gateway: vpc에 추가되어 통신하기 위한 규칙 추가
+ DHCP옵션셋: DNS, NTP, NetBIOS 설정
+ Network ACL / Security Group: N ACL은 서브넷에서의 트래픽제어. SG는 인스턴스 앞단의 가상방화벽(inbound/outbound 트래픽, protocol)
+ Available zone: 물리적 자원의 공간적 분리 가능. a~f 까지 분리 가능.  HA(High Availability) 구성 가능.
+
+ VPC 서브넷의 인스턴스의 인터넷액세스 활성화
+ - vpc에 Internet Gateway 연결
+ - Subnet의 라우팅테이블이 Internet Gateway를 가르키는지 확인
+ - Subnet상의 인스턴스에 Public IP, Elastic IP or IPv6가 attach되어있는지 확인
+ - NACL, Security Group의 Inbound 트래픽의 규칙 확인 
+
+ Public/Private Subnet
+
+
+# aws 아키텍처 구성 고려사항
+https://tech.cloud.nongshim.co.kr/2018/10/11/%ec%b4%88%eb%b3%b4%ec%9e%90%eb%a5%bc-%ec%9c%84%ed%95%9c-aws-%ec%9b%b9%ea%b5%ac%ec%b6%95-%ec%9b%b9%ec%84%9c%eb%b2%84-%ec%95%84%ed%82%a4%ed%85%8d%ec%b2%98-%ec%86%8c%ea%b0%9c/
+  VPC CIDR: IP등의 ec2(elastic compute cloud)인스턴스 대수에 대한 용량산정
+  HA구성 및 cross zone에 대한 On Demand 요금: Available zone 구성
+  보안측면: Public/Private Subnet 
+  IAM 및 보안 측면 고려: 
+
+# LoadBalancer
+https://tech.cloud.nongshim.co.kr/2018/10/17/%ec%b4%88%eb%b3%b4%ec%9e%90%eb%a5%bc-%ec%9c%84%ed%95%9c-aws-%ec%9b%b9%ea%b5%ac%ec%b6%95-7-elb-%ec%83%9d%ec%84%b1%ed%95%98%ea%b8%b0-%ec%9e%91%ec%84%b1%ec%a4%91/  
+ ALB / NLB / Classic LB:  L7/L4 스위치
+ 서비스의 노출 및 Proxy와 AppServer의 구성
+
+========================================
+## AutoScaling 과 Launch Configuration AMI
+# Autoscaling group
+https://aws-diary.tistory.com/12
+https://aws-diary.tistory.com/25?category=753072
+
+# Autoscaling group 과 Launch Configuration/Template 비교
+https://taekisgood.tistory.com/entry/Launch-Templates-Launch-Configuration
+
+# Autoscaling group의 아마존 워크샵(디테일함)
+https://general-immersionday.workshop.aws/ko/database/update_asg.html
+
+
+# CodeDeploy
+https://velog.io/@hwany/AWS-EC2-CodeDeploy-%EC%97%B0%EB%8F%99%ED%95%98%EA%B8%B0
+
+# Packer 통한 AMI 생성
+https://tram-devlog.tistory.com/entry/%EA%B0%80%EC%83%81-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EC%83%9D%EC%84%B1%EC%9D%84-%EC%9C%84%ED%95%9C-Packer?category=766770
+https://woowabros.github.io/experience/2019/04/20/ami-packer-ansible.html
+   packer  설치 및 template
+   variable builders provisioners  postprocessors
+
+# Terraform 으로 launch template 생성
+https://tram-devlog.tistory.com/entry/Terraform%EC%9C%BC%EB%A1%9C-Launch-Templates-%EC%83%9D%EC%84%B1?category=766770
+https://woowabros.github.io/experience/2019/04/20/ami-packer-ansible.html
+
+========================================
+## Ansible
+# Ansible 기초
+https://wickso.me/ansible/basic/
+https://mcpaint.tistory.com/278
+ 개념: 프로비저닝 자동화 오픈소스 소프트웨어
+ IaC(Infrastructure as Code): 인프라상태를 소프트웨어가 코드로 자동실행
+ 멱등성(Idepmpotency): 특정 작업을 여러번 실행하더라도 동일한 결과를 내는 특성
+ Agentlee: 
+  
+ 구조: 
+ Inventory
+ Playbook
+  ansible.cfg  환경설정파일
+  hosts  
+  roles
+    role
+       tasks
+       files
+  group_vars
+  host_vars
+  library
+
+# 구조의 이해
+https://youngmind.tistory.com/entry/Ansible-%EA%B5%AC%EC%A1%B0%EC%9D%98-%EC%9D%B4%ED%95%B4
+
+# user guide
+https://docs.ansible.com/ansible/latest/user_guide/index.html
+
+
+
+========================================
+## Jenkins 
+# aws 매뉴얼
+https://docs.aws.amazon.com/ko_kr/systems-manager/latest/userguide/automation-jenkins.html
+
+# jenkins 원격서버배포
+https://goddaehee.tistory.com/260
+https://goddaehee.tistory.com/259
+ 
+# github 의 webhook 이용한 자동빌드
+https://ict-nroo.tistory.com/37?category=754815
+
+
+클라우드 구성
+ VPC, Subnet NAT, route table, Security Group
+ EC2 
+ S3
+ Cache NoSQL(Cassandra, 
+
+
+IaC와 Ansible
+ 멱등성
+ 서버 디렉토리 표준화
+
+Build 환경
+ Maven  Jenkins(pipeline)
+ Service Discovery  이미지(launch configuration)
+ AutoScaling 설정
+ MSA
+
+
+Lambda Kappa Architecture
+ 로그, performance data(disk usage, I/O, load Average, CPU Usage)
+ 실시간, 준실시간
+ ELK: Elastic Search, Logstach, Kibana
+
+
+Chatbot 연동 및 자동화
